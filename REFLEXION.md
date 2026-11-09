@@ -52,3 +52,30 @@
    restent sur ma machine : il doit relancer les scripts pour obtenir ses propres
    runs, et son environnement n'est pas garanti identique. Ce dernier point sera
    traité avec Docker (TP5-6).
+
+## TP4 — avec le Registry et l'API
+
+1. Comment désigner officiellement le modèle à utiliser ?
+   -> Avec le Model Registry de MLflow. Le meilleur run (essai-3) est enregistré
+   sous un nom stable, churn-model (version 1), et l'alias « champion » pointe
+   vers cette version. Le modèle se charge ensuite par
+   `models:/churn-model@champion`, sans connaître ni son numéro de version ni
+   son identifiant de run. Chaque version reste reliée à son run d'origine : on
+   sait toujours d'où vient le modèle officiel et avec quels réglages.
+
+2. Comment une application peut-elle utiliser le modèle ?
+   -> Par une requête web à l'API FastAPI : POST /predict avec un client au
+   format JSON, la réponse contient la prédiction (churn = 1 ou 0). Le client
+   n'a besoin ni de scikit-learn, ni de MLflow (testé avec test_api.py). Les
+   données sont validées par Pydantic : un âge « abc » ou un abonnement « Gold »
+   est refusé avec un code 422 avant d'atteindre le modèle.
+
+3. Que se passe-t-il quand on change de champion ?
+   -> On déplace l'alias en une ligne (`set_registered_model_alias`), puis on
+   redémarre l'API, qui ne charge le modèle qu'au démarrage. Ni le code de l'API
+   ni celui des applications clientes ne change. Je l'ai testé avec
+   deplacer_alias.py : promotion vers la version 2 (essai-2), puis retour
+   arrière vers la version 1.
+   Limite : l'API refait à la main l'encodage de l'entraînement (get_dummies) ;
+   si l'encodage changeait, il faudrait aussi modifier l'API. Et le Registry
+   reste dans mlflow.db, sur ma machine.
