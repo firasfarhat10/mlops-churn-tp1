@@ -25,3 +25,30 @@
    et réentraîner le modèle. Et rien ne fixe les versions de Python et des
    bibliothèques (pas de requirements.txt figé) : son résultat peut donc
    différer.
+
+## TP3 — avec MLflow
+
+1. Quel est le meilleur des 3 modèles ? Peut-on le prouver ?
+   -> Oui. Chaque essai est un run MLflow avec ses paramètres et ses 4 métriques
+   (accuracy, precision, recall, f1). Le tri par f1, dans l'interface ou avec
+   `mlflow.search_runs(order_by=["metrics.f1 DESC"])`, donne un classement daté
+   et conservé : essai-1 et essai-3 à égalité (f1 = 0.889), essai-2 nettement
+   derrière (f1 = 0.333). À performance égale, je retiens essai-3, le plus simple
+   (il n'a pas besoin de la colonne salaire).
+   Le f1 a révélé ce que l'accuracy cachait : essai-2 affiche 0.96 d'accuracy
+   mais ne détecte qu'un seul départ sur 5 (recall = 0.2). Nuance : avec 5 clients
+   qui partent dans le test, un seul client mal classé fait varier fortement ces
+   chiffres ; ils orientent le choix plus qu'ils ne le prouvent.
+
+2. Peut-on redonner exactement le modèle de l'Essai 1 ?
+   -> Oui. Chaque run conserve son propre modèle dans ses artifacts : plus rien
+   n'est écrasé. `mlflow.sklearn.load_model("runs:/<run_id>/model")` le recharge
+   sans réentraînement (testé avec charger_modele.py).
+
+3. Un camarade peut-il reproduire notre travail sur une autre machine ?
+   -> En partie. Git lui donne le code et les données, et chaque run MLflow
+   enregistre les versions des bibliothèques (requirements.txt et
+   python_env.yaml dans les artifacts du modèle). Mais mlflow.db et mlruns/
+   restent sur ma machine : il doit relancer les scripts pour obtenir ses propres
+   runs, et son environnement n'est pas garanti identique. Ce dernier point sera
+   traité avec Docker (TP5-6).
